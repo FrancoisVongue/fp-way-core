@@ -1,6 +1,4 @@
 import {obj} from "./index";
-import { IsOfType, Return, TRUE} from "../core";
-import { DataObject, DeepPartial } from "../core.types";
 
 type CatParent = {
     age: number;
@@ -131,7 +129,6 @@ describe('DeepCopy', () => {
         expect(humanCopy.friend.name).toEqual(human.friend.name);
     })
 })
-
 describe('Flatten', () => {
     it('should flatten a simple object', () => {
         const person = {
@@ -150,10 +147,54 @@ describe('Flatten', () => {
             child: {
                 age: 14,
                 name: "gregor",
+                friends: ["marta", "chloe", "francois"]
             }
         };
         const result = obj.Flatten<typeof person>(person);
         
         expect(result['child.age']).toBe(person.child.age);
+        expect(result['child.friends.1']).toBeDefined();
     })
-})
+});
+describe('FocusOn', () => {
+    it('should safely focus deep into nested objects', () => {
+        const person = {
+            age: 14,
+            name: "gregor",
+            child: {
+                age: 1
+            }
+        };
+        const result = obj.FocusOn(["child", "age"], person);
+        const nilResult = obj.FocusOn(["child", "unknown"], person);
+
+        expect(result).toBe(1);
+        expect(nilResult).toBeNull();
+    });
+});
+describe('Put', () => {
+    it('should safely set a value into an obj and return a new one', () => {
+        const person: {
+            age: number,
+            name: string,
+            child: {
+                age: 1,
+                friend?: {
+                    name: string
+                }
+            }
+        } = {
+            age: 14,
+            name: "gregor",
+            child: {
+                age: 1
+            }
+        };
+        const result = obj.Put(["child", "age"], 2, person);
+        const result2 = obj.Put(["child", "friend", "name"], "Donald", person);
+
+        expect(person.child.age).toBe(1);
+        expect(result.child.age).toBe(2);
+        expect(result2.child?.friend?.name).toBe('Donald');
+    });
+});
