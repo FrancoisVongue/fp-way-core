@@ -149,9 +149,8 @@ describe('IfElse', () => {
 
 describe('Const', () => {
     it('should return the first argument after call', () => {
-        const four = Const(4, 5);
-        const alsoFour = Const(4)(5);
+        const four = Const(4)(999);
 
-        expect(four + alsoFour).toBe(8);
+        expect(four + four).toBe(8);
     })
 })
