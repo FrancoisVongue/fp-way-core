@@ -22,11 +22,11 @@ export const Identity = <T1>(v: T1) => v;
 export const Const: {
     <T1>(
         value: T1,
-        _: any
-    ): T1
+    ): (_?: any) => T1
     <T1>(
         value: T1,
-    ): Unary<any, T1>
+        _: any
+    ): T1
 } = Curry((a, _) => a)
 export const Return = Const;
 export const TRUE = Const(true);
