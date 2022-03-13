@@ -19,7 +19,7 @@ export const Curry: TCurry = function (f, ...initialArgs) {
 }
 
 export const Identity = <T1>(v: T1) => v;
-export const Const = <T>(a: T) => _ => a;
+export const Const = <T>(a: T) => (_?) => a;
 export const Variable = (_?) => <T>(b: T) => b;
 export const Return = Const;
 export const TRUE = Const(true);
