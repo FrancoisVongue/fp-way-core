@@ -1,4 +1,5 @@
 import {obj} from "./index";
+import {Focus} from "./index.types";
 
 type CatParent = {
     age: number;
@@ -53,7 +54,7 @@ describe('WithDefault', () => {
         expect(defCat.amountOfLegs).toBe(4);
     })
 })
-describe('ExcludeProps', () => {
+describe('Exclude', () => {
     it('Should remove properties from objects', () => {
         const cat = {
             age: 8,
@@ -61,9 +62,9 @@ describe('ExcludeProps', () => {
             amountOfLegs: 4
         };
 
-        const catWOAge: Partial<Cat> = obj.Exclude(["age"], cat);
+        const catWOAge = obj.Exclude(["age"], cat);
 
-        expect(catWOAge.age).toBeUndefined();
+        expect((catWOAge as typeof cat).age).toBeUndefined();
         expect(catWOAge.name).toBeDefined();
     })
 
@@ -74,7 +75,7 @@ describe('ExcludeProps', () => {
             amountOfLegs: 4
         };
 
-        const catWOAge: Partial<Cat> = obj.Exclude(["age"], cat);
+        const catWOAge = obj.Exclude(["age"], cat);
         catWOAge.amountOfLegs = 444;
 
         expect(cat.amountOfLegs).toBe(4);
@@ -88,9 +89,9 @@ describe('Pick', () => {
             amountOfLegs: 4
         };
 
-        const catWOAge: Partial<Cat> = obj.Pick(["name", "amountOfLegs"], cat);
+        const catWOAge = obj.Pick(["name", "amountOfLegs"], cat);
 
-        expect(catWOAge.age).toBeUndefined();
+        expect((catWOAge as typeof cat).age).toBeUndefined();
         expect(catWOAge.name).toBeDefined();
         expect(catWOAge.amountOfLegs).toBeDefined();
     })
@@ -102,7 +103,7 @@ describe('Pick', () => {
             amountOfLegs: 4
         };
 
-        const catWithAge: Partial<Cat> = obj.Pick(["age"], cat);
+        const catWithAge = obj.Pick(["age"], cat);
         catWithAge.age = 444;
 
         expect(cat.age).toBe(8);
@@ -156,7 +157,7 @@ describe('Flatten', () => {
         expect(result['child.friends.1']).toBeDefined();
     })
 });
-describe('FocusOn', () => {
+describe('Get', () => {
     it('should safely focus deep into nested objects', () => {
         const person = {
             age: 14,
@@ -165,36 +166,89 @@ describe('FocusOn', () => {
                 age: 1
             }
         };
-        const result = obj.FocusOn(["child", "age"], person);
-        const nilResult = obj.FocusOn(["child", "unknown"], person);
+        const result = obj.Get(["child", "age"], person);
+        const nilResult = obj.Get(["child", "unknown" as any], person);
 
         expect(result).toBe(1);
-        expect(nilResult).toBeNull();
+        expect(nilResult).toBeUndefined();
+    });
+    it('should return correct type for deeply nested objects', () => {
+        type GrandFather = {
+            age: number,
+            name: string,
+            father: {
+                daughter: {
+                    grandSon?: {
+                        name: string,
+                        grandGrandSon: {
+                            name: string,
+                            gggSon?: {
+                                name: string
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        const gggSonName = "Tom";
+        const grandPa: GrandFather = {
+            age: 14,
+            name: "gregor",
+            father: {
+                daughter: {
+                    grandSon: {
+                        name: "Tom",
+                        grandGrandSon: {
+                            name: "Tom Jr",
+                            gggSon: {
+                                name: gggSonName,
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        const result = obj.Get(["father", "daughter", "grandSon", "grandGrandSon", "gggSon", "name"], grandPa);
+        const result2 = obj.Get(["father", "daughter", "grandSon", "grandGrandSon", "gggSon"], grandPa);
+
+        // "unknown" property doesn't exist
+        // @ts-expect-error
+        const nilResult = obj.Get(["father", "daughter", "grandSon", "unknown"], grandPa);
+        const father = obj.Get(["father"], grandPa);
+
+        expect(result).toBe(gggSonName);
+        expect(typeof result2?.name).toBe('string');
+        expect(nilResult).toBeUndefined();
+        expect(father).toBeInstanceOf(Object);
     });
 });
 describe('Put', () => {
     it('should safely set a value into an obj and return a new one', () => {
-        const person: {
+        type Person = {
             age: number,
-            name: string,
-            child: {
-                age: 1,
-                friend?: {
-                    name: string
-                }
+            child?: {
+                age: number,
+                friend?: { name: string }
             }
-        } = {
+        }
+        const person: Person = {
             age: 14,
-            name: "gregor",
             child: {
                 age: 1
             }
         };
-        const result = obj.Put(["child", "age"], 2, person);
-        const result2 = obj.Put(["child", "friend", "name"], "Donald", person);
+        const newName = 'Donald';
 
-        expect(person.child.age).toBe(1);
-        expect(result.child.age).toBe(2);
-        expect(result2.child?.friend?.name).toBe('Donald');
+        const result = obj.Put(["child", "age"], 2, person);
+        const result2 = obj.Put(["child", "friend", "name"], newName, person);
+
+        // @ts-expect-error
+        const err = obj.Put(["child", "age"], '', person);
+        // @ts-expect-error
+        const err2 = obj.Put(["child", "friend", "name"], [], person);
+
+        expect(person?.child?.age).toBe(1);
+        expect(result?.child?.age).toBe(2);
+        expect(result2.child?.friend?.name).toBe(newName);
     });
 });

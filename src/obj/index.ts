@@ -1,5 +1,6 @@
 import {Curry, Exists, InCase, IsOfType, Pipe, Swap, TRUE, Identity, When, TypeOf} from "../core";
-import {Binary, DataObject, DeepPartial, Unary} from "../core.types";
+import {Binary, DataObject, DeepPartial, DeepRequired, Unary} from "../core.types";
+import {Focus, OptionalPath, Path} from "./index.types";
 
 export namespace obj {
     export const Keys = <T1 extends DataObject>(obj: T1): (keyof T1 & string)[] => Object.keys(obj);
@@ -21,13 +22,13 @@ export namespace obj {
 
     export const WithDefault: {
         <T extends DataObject>(
-            def: DeepPartial<T>,
-            obj: DeepPartial<T>,
-        ): DeepPartial<T>
+            def: T,
+            obj: DeepPartial<T>
+        ): T
 
         <T extends DataObject>(
-            def: DeepPartial<T>,
-        ): Unary<DeepPartial<T>, DeepPartial<T>>
+            def: T
+        ): Unary<DeepPartial<T>, T>
     } = Curry((def, obj) => {
         const objCopy = DeepCopy(obj);
         const defCopy = DeepCopy(def);
@@ -35,9 +36,8 @@ export namespace obj {
 
         for(const key of allProps) {
             objCopy[key] = InCase([
-                // if both are objects, merge them again
-                [
-                    ([defv, v]) => [defv, v].every(IsOfType("object")),
+                [   // if both are objects, merge them again
+                    (both) => both.every(IsOfType("object")),
                     ([def, o]) => WithDefault(def, o)],
                 [([_, v]) => Exists(v), ([_, v]) => v],// if not, and obj has value, simply replace
                 [TRUE, ([defv, _]) => defv],          // if there's no value, return default
@@ -48,25 +48,25 @@ export namespace obj {
     });
 
     export const Impose: {
-        <T1 extends DataObject, R extends DeepPartial<T1>>(
-            def: DeepPartial<T1>,
-            obj: DeepPartial<T1>,
-        ): R
+        <T extends DataObject>(
+            obj: DeepPartial<T>,
+            def: T
+        ): T
 
-        <T1 extends DataObject, R extends DeepPartial<T1>>(
-            def: DeepPartial<T1>,
-        ): R
+        <T extends DataObject>(
+            obj: DeepPartial<T>,
+        ): Unary<T, T>
     } = Swap(WithDefault);
 
     export const Pick: {
-        <T1 extends DataObject>(
-            keys: (keyof T1)[],
+        <T1 extends DataObject, KS extends keyof T1>(
+            keys: KS[], 
             obj: T1
-        ): Partial<T1>
+        ): Pick<T1, KS>
 
-        <T1 extends DataObject>(
-            keys: (keyof T1)[],
-        ): Unary<T1, Partial<T1>>
+        <T1 extends DataObject, KS extends keyof T1>(
+            keys: KS[], 
+        ): Unary<T1, Pick<T1, KS>>
     } = Curry((props, obj) => {
         const newObj = {};
         const objCopy = DeepCopy(obj);
@@ -76,14 +76,14 @@ export namespace obj {
     });
 
     export const Exclude: {
-        <T1 extends DataObject>(
-            keys: (keyof T1)[],
+        <T1 extends DataObject, KS extends keyof T1>(
+            keys: KS[], 
             obj: T1
-        ): Partial<T1>
+        ): Omit<T1, KS>
 
-        <T1 extends DataObject>(
-            keys: (keyof T1)[],
-        ): Unary<T1, Partial<T1>>
+        <T1 extends DataObject, KS extends keyof T1>(
+            keys: KS[], 
+        ): Unary<T1, Omit<T1, KS>>
     } = Curry((propsToExclude, obj) => {
         const allProps = Keys(obj);
         const props = allProps.filter(p => !propsToExclude.includes(p));
@@ -110,39 +110,35 @@ export namespace obj {
         return obj as any;
     };
 
-    export const FocusOn: {
-        <T extends DataObject, R>(
-            k: (keyof T | string)[],
+    export const Get: {
+        <T extends DataObject, P extends OptionalPath<T>>(
+            k: P,
             o: T,
-        ): R
+        ): Focus<T, P>
 
-        <T extends DataObject, R>(
-            k: (keyof T | string)[],
-        ): Unary<T, R>
+        <T extends DataObject, P extends OptionalPath<T>>(
+            k: P,
+        ): Unary<T, Focus<T, P>>
     } = Curry((ks, o) => {
-        let res = o;
-        for(let k of ks) {
-            res = res?.[k] ?? null;
-        }
-
-        return When(IsOfType("object"), DeepCopy, res);
-    });
+        for(let k of ks) { o = o?.[k] }
+        return DeepCopy(o);
+    }) as any;
 
     export const Put: {
-        <T>(
-            path: (keyof T | string)[],
-            value: any,
-            obj: T,
+        <T extends DataObject, P extends OptionalPath<T>>(
+            k: P,
+            v: Focus<T, P>,
+            o: T,
         ): T
 
-        <T>(
-            path: (keyof T | string)[],
-            value: any,
-        ): Unary<T, T>
+        <T extends DataObject, P extends OptionalPath<T>>(
+            v: Focus<T, P>,
+            o: T,
+        ): Unary<P, T>
 
-        <T>(
-            path: (keyof T | string)[],
-        ): Binary<any, T, T>
+        <T extends DataObject, P extends OptionalPath<T>>(
+            o: T,
+        ): Binary<Focus<T, P>, P, T>
     } = Curry((p, v, o) => {
         const type = TypeOf(o);
         if(type !== "object") {
@@ -154,10 +150,9 @@ export namespace obj {
         const prop = p[p.length - 1]; 
 
         for(let p of props) {
-            currentObj = InCase([
-                [IsOfType('object'), Identity],
-                [TRUE, (_) => (currentObj[p] = {}, currentObj[p])],
-            ], currentObj?.[p]);
+            currentObj = IsOfType('object', currentObj?.[p])
+                ? currentObj[p]
+                : (currentObj[p] = {}, currentObj[p])
         }
         currentObj[prop] = v;
         return obj;
