@@ -1,12 +1,15 @@
 import {Curry, Exists, InCase, IsOfType, Pipe, Swap, TRUE, Identity, When, TypeOf} from "../core";
-import {Binary, DataObject, DeepPartial, DeepRequired, Unary} from "../core.types";
+import {Curried2, DataObject, DeepPartial, DeepRequired, Unary} from "../core.types";
 import {Focus, OptionalPath, Path} from "./index.types";
 
 export namespace obj {
     export const Keys = <T1 extends DataObject>(obj: T1): (keyof T1 & string)[] => Object.keys(obj);
+
     export const Entries = <T1 extends DataObject>(obj: T1): [(keyof T1 & string), any][] => Object.entries(obj);
-    export const FromEntries = <T1 extends DataObject>(entries: [keyof T1, any][]): T1 =>
-        entries.reduce((b, [k, v]) => (b[k] = v, b), {} as T1);
+
+    export const FromEntries = <T1 extends DataObject>(entries: [keyof T1, any][]): T1 => {
+        return entries.reduce((b, [k, v]) => (b[k] = v, b), {} as T1);
+    }
 
     export const DeepCopy = <T1>(obj: T1): T1 => {
         return InCase<T1, T1>([
@@ -75,7 +78,7 @@ export namespace obj {
         return newObj;
     });
 
-    export const Exclude: {
+    export const Omit: {
         <T1 extends DataObject, KS extends keyof T1>(
             keys: KS[], 
             obj: T1
@@ -138,7 +141,7 @@ export namespace obj {
 
         <T extends DataObject, P extends OptionalPath<T>>(
             o: T,
-        ): Binary<Focus<T, P>, P, T>
+        ): Curried2<Focus<T, P>, P, T>
     } = Curry((p, v, o) => {
         const type = TypeOf(o);
         if(type !== "object") {

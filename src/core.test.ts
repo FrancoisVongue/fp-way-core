@@ -1,5 +1,5 @@
 import {
-    CanBeDescribedAs,
+    Satisfies,
     Compose, Const,
     Curry,
     FALSE, IfElse,
@@ -122,7 +122,7 @@ describe('IsOfType', () => {
 
 describe('CanBeDescribedAs', () => {
     it('should return true in case all predicates return true', () => {
-        const isInt = CanBeDescribedAs<number>([
+        const isInt = Satisfies<number>([
             (int) => int % 1 === 0,
             int => typeof int === 'number'
         ])

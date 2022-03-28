@@ -30,9 +30,12 @@ Each namespace contains curried methods that work on the corresponding type.
 | [Swap](#swap)                             | [Unless](#unless)                       |                         |
 | [Call](#call)                             | [InCase](#incase)                       |                         |
 | [ApplyOn](#applyon)                       | [IndependentInCase](#independentincase) |                         |
-| [Pipe](#pipe)                             | [CanBeDescribedAs](#canbedescribedas)   |                         |
+| [Pipe](#pipe)                             | [Satisfies](#satisfies)                 |                         |
 | [Compose](#compose)                       | [IsEither](#iseither)                   |                         |
 | [Not](#not)                               | [IsOfType](#isoftype)                   |                         |
+|                                           | [IsNot](#isnot)                         |                         | 
+|                                           | [NotExists](#notexists)                 |                         | 
+|                                           | [IsNeither](#isneither)                 |                         | 
 
 Note that some methods in this section have **aliases**. 
 <br>For example **Const** and **Return** are the same method.
@@ -185,7 +188,7 @@ Function that takes two arguments:
 Works similar to InCase but returns 
 <br>**an array of results** of passing value to unary functions where predicate returned `true`
 
-## CanBeDescribedAs
+## Satisfies
 Function takes two arguments:
 1. An array of unary predicates
 2. value
@@ -198,6 +201,13 @@ Function takes two arguments:
 2. value
 
 Checks if **at least one** predicate returns true when called with the value.
+
+## IsNeither
+Function takes two arguments:
+1. An array of unary predicates
+2. value
+
+Checks if **not a single** predicate returns true when called with the value.
 
 ## Pipe
 Function takes two arguments:
@@ -310,7 +320,8 @@ Same as above but **value can also be equal** to the min or max.
 Unary function that negates a numeric value
 
 ## Inc, Dec
-Increment (+1) and decrement (-1)
+Unary function that takes a number, applies
+Increment (+1) or decrement (-1) operation and returns it.
 
 ## AtMost
 Binary function takes two arguments:
@@ -444,9 +455,6 @@ It returns a deep copy of the result of merging these two objects into one, with
 <br>**properties of the second having higher precedence**.
 > **Note** If both objects have a nested object under the same key, the objects merge as well
 
-<details>
-<summary>Click to view example:</summary>
-
 ```ts
 const defaultCat = {
     name: 'Jonny',
@@ -467,7 +475,10 @@ const cat = {
 
 const result = WithDefault(defaultCat, cat);
 
-const ResultWillBe = {
+```
+Result will be:
+```
+{
     name: 'Malcolm',       // overriden by cat
     age: 1,                // taken from default
     cute: true,            // taken from default
@@ -478,8 +489,6 @@ const ResultWillBe = {
     }
 }
 ```
-</details>
-<hr>
 
 ## Impose
 ```ts
@@ -495,8 +504,77 @@ Binary function that takes two arguments:
 
 Creates a new object with only the keys specified in the first argument.
 
-## Exclude
-Same as pick but excludes properties from object instead of picking them.
+## Omit
+Same as pick but omits properties from object instead of picking them.
+
+## Flatten
+Unary function that takes an object, removes nested objects, and 
+**creates new keys to substitute them**. Example:
+```ts
+const person = {
+    age: 14,
+    name: "gregor",
+    child: {
+        age: 14,
+        name: "gregor",
+        friends: ["marta", "chloe", "francois"]
+    }
+};
+const result = obj.Flatten<typeof person>(person);
+```
+Result will be:
+```
+{
+  "age": 14,
+  "name": "gregor",
+  "child.age": 14,
+  "child.name": "gregor",
+  "child.friends.0": "marta",
+  "child.friends.1": "chloe",
+  "child.friends.2": "francois"
+}
+```
+
+## Get
+Method that takes two arguments:
+1. path to the value inside an object
+2. an object
+
+It returns value if it can be found or `undefined` if not.
+```ts
+
+const person = {
+    age: 14,
+    name: "gregor",
+    child: {
+        age: 1
+    }
+};
+const result = obj.Get(["child", "age"], person);           // returns 1
+const undef = obj.Get(["child", "unknown" as any], person); // returns undefined
+```
+
+## Put
+Method that takes three arguments:
+1. path to the value inside an object
+2. a value
+3. an object
+
+It sets value at the path, creating nested objects along the way if needed.
+It returns a **Copy* of the original object with the value set in place.
+```ts
+const person = {} as any;
+const result = obj.Put(["child", "age"], 2, person);
+```
+Result will be:
+```
+{
+  "child": {
+    "age": 2
+  }
+}
+```
+While `person` object will not change at all.
 
 # Arr
 | constructors            | transformators                                 | validators                          |

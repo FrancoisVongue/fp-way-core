@@ -54,7 +54,7 @@ describe('WithDefault', () => {
         expect(defCat.amountOfLegs).toBe(4);
     })
 })
-describe('Exclude', () => {
+describe('Omit', () => {
     it('Should remove properties from objects', () => {
         const cat = {
             age: 8,
@@ -62,7 +62,7 @@ describe('Exclude', () => {
             amountOfLegs: 4
         };
 
-        const catWOAge = obj.Exclude(["age"], cat);
+        const catWOAge = obj.Omit(["age"], cat);
 
         expect((catWOAge as typeof cat).age).toBeUndefined();
         expect(catWOAge.name).toBeDefined();
@@ -75,7 +75,7 @@ describe('Exclude', () => {
             amountOfLegs: 4
         };
 
-        const catWOAge = obj.Exclude(["age"], cat);
+        const catWOAge = obj.Omit(["age"], cat);
         catWOAge.amountOfLegs = 444;
 
         expect(cat.amountOfLegs).toBe(4);
@@ -223,6 +223,14 @@ describe('Get', () => {
     });
 });
 describe('Put', () => {
+    it('Should create new objects along the way', () => {
+        const person = {} as any;
+        const result = obj.Put(["child", "age"], 2, person);
+
+        expect(person.child).toBeUndefined();
+        expect(result.child).toBeInstanceOf(Object);
+        expect(result.child.age).toBe(2);
+    })
     it('should safely set a value into an obj and return a new one', () => {
         type Person = {
             age: number,

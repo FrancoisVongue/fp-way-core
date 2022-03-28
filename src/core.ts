@@ -28,16 +28,16 @@ export const DoNothing = (_?) => {};
 export const Not = (f: Predicate): Predicate => (...args) => !f(...args);
 
 export const Is = Curry((a, b) => a === b);
-export const Exists = a => !(a === null || a === undefined);
 export const IsNot = Not(Is);
-export const NotExists = Not(Exists);
+export const Exists = a => !(a === null || a === undefined);
+export const NotExists = a => (a === null || a === undefined);
 
 export const Swap = <T1, T2, R>(
     f: Binary<T1, T2, R> | Curried2<T1, T2, R>
 ): Curried2<T2, T1, R> => Curry((a, b) => f(b,a)) as any;
 
-export const Call = Curry((f, v) => f(v))
-export const ApplyOn = Swap(Call)
+export const Call = Curry((f: Function, v) => f(v));
+export const ApplyOn = Swap(Call);
 
 export const IfElse: {
     <T, R>(
@@ -83,31 +83,30 @@ export const When: {
 } = Curry((p, f, a) => p(a) ? f(a) : a);
 
 export const Unless: {
-    <T>(
+    <T, R>(
         predicate: Unary<T, boolean>,
-        onFail: Unary<T, T>,
+        onFail: Unary<T, R>,
         value: T
-    ): T
+    ): R
 
-    <T>(
+    <T, R>(
         predicate: Unary<T, boolean>,
-        onFail: Unary<T, T>,
-    ): Unary<T, T>
+        onFail: Unary<T, R>,
+    ): Unary<T, R>
 
-    <T>(
+    <T, R>(
         predicate: Unary<T, boolean>,
-    ): Curried2<Unary<T, T>, T, T>
+    ): Curried2<Unary<T, R>, T, R>
 } = Curry((p, f, a) => !p(a) ? f(a) : a);
 
 export const InCase: {
     <T, R>(
         entries: [Unary<T, boolean>, Unary<T, R>][],
-    ): (v: T) => R
-
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
         v: T
     ): R
+    <T, R>(
+        entries: [Unary<T, boolean>, Unary<T, R>][],
+    ): Unary<T, R>
 } = Curry((
     entries: [Unary<any, boolean>, Unary<any, any>][],
     v: any
@@ -118,17 +117,17 @@ export const InCase: {
             return f(v);
         }
     }
+    return v;
 });
 
 export const IndependentInCase: {
     <T, R>(
         entries: [Unary<T, boolean>, Unary<T, R>][],
-    ): (v: T) => R[]
-
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
         v: T
     ): R[]
+    <T, R>(
+        entries: [Unary<T, boolean>, Unary<T, R>][],
+    ): Unary<T, R[]>
 } = Curry((
     entries: [Unary<any, boolean>, Unary<any, any>][],
     val: any
@@ -145,7 +144,7 @@ export const IndependentInCase: {
     return results;
 });
 
-export const CanBeDescribedAs: {
+export const Satisfies: {
     <T>(
         predicates: UnaryPredicate<T>[],
         value: T
@@ -155,7 +154,7 @@ export const CanBeDescribedAs: {
         predicates: UnaryPredicate<T>[],
     ): Unary<T, boolean>
 } = Curry((ps: Predicate[], v: any) => {
-    return ps.map(ApplyOn(v)).every(Is(true))
+    return ps.map(f => f(v)).every(Identity);
 });
 
 export const IsEither: {
@@ -168,7 +167,20 @@ export const IsEither: {
         predicates: UnaryPredicate<T>[],
     ): Unary<T, boolean>
 } = Curry((ps: Predicate[], v: any) => {
-    return ps.map(ApplyOn(v)).some(Is(true))
+    return ps.map(f => f(v)).some(Identity);
+});
+
+export const IsNeither: {
+    <T>(
+        predicates: UnaryPredicate<T>[],
+        value: T
+    ): boolean
+
+    <T>(
+        predicates: UnaryPredicate<T>[],
+    ): Unary<T, boolean>
+} = Curry((ps: Predicate[], v: any) => {
+    return ps.map(f => f(v)).every(v => !v);
 });
 
 export const Pipe: {

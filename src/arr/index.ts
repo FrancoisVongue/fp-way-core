@@ -1,11 +1,11 @@
 import {Curry, IsOfType, Not, Swap,} from "../core";
-import {Binary, Predicate, Ternary, Unary} from "../core.types";
+import {Curried2, Predicate, Ternary, Unary} from "../core.types";
 import {num} from "../num";
 
 export namespace arr {
     // create
     export const OfValues = <T>(...v: T[]) => [...v];
-    export const OfLength = Curry((n: number) => Array(n).fill(null));
+    export const OfLength = (n: number): null[] => Array(n).fill(null);
     export const FromRange = Curry((
         start: number,
         finish: number,
@@ -73,8 +73,33 @@ export namespace arr {
         ): Unary<T1[], R>
         <T1, R>(
             reducer: Ternary<R, T1, T1[], R>,
-        ): Binary<R, T1[], R>
+        ): Curried2<R, T1[], R>
     } = Curry((reducer, base, arr) => arr.reduce(reducer, base));
+
+
+    export const Tail = <T1>(arr: T1[]): T1[] => [...arr].slice(1);
+    export const Nose = <T1>(arr: T1[]): T1[] => [...arr].slice(0, -1)
+    export const Head = <T1>(arr: T1[]): T1 | undefined => [...arr].shift();
+    export const Butt = <T1>(arr: T1[]): T1 | undefined => [...arr].pop();
+    export const TakeNFirst: {
+        <T1>(
+            n: number,
+            arr: T1[]
+        ): T1[]
+        <T1>(
+            arr: T1[]
+        ): Unary<number, T1[]>
+    } = Curry((n, arr) => arr.slice(0, n));
+    export const TakeNLast: {
+        <T1>(
+            n: number,
+            arr: T1[]
+        ): T1[]
+        <T1>(
+            arr: T1[]
+        ): Unary<number, T1[]>
+    } = Curry((n, arr) => arr.slice(-n));
+
     export const ConcatTo: {
         <T1>(
             arr: T1[],
@@ -84,12 +109,6 @@ export namespace arr {
             arr: T1[],
         ): Unary<T1[], T1[]>
     } = Curry((arr, arrOfValues) => [...arr, ...arrOfValues]);
-    export const Tail = (arr) => [...arr].slice(1);
-    export const Nose = (arr) => [...arr].slice(0, -1)
-    export const Head = <T1>(arr: T1[]): T1 | undefined => [...arr].shift();
-    export const Butt = <T1>(arr: T1[]): T1 | undefined => [...arr].pop();
-    export const TakeNFirst = Curry((n: number, arr: any[]) => arr.slice(0, n));
-    export const TakeNLast = Curry((n: number, arr: any[]) => arr.slice(-n));
     export const Append: {
         <T1>(
             v: T1,
@@ -110,12 +129,14 @@ export namespace arr {
             v: T1,
         ): Unary<T1[], T1[]>
     } = Curry((value: any, arr: any[]) => [value, ...arr]);
+
     export const Flatten = function Flatten<T1>(arr: any[]): T1[] {
         return arr.reduce((b, v) => (IsOfType("array", v)
                 ? b.push(...Flatten(v))
                 : b.push(v)
             , b), [])
     }
+
     export const Intersection: {
         <T1>(
             arr1: T1[],
@@ -146,19 +167,36 @@ export namespace arr {
     })
 
     // validate
-    export const IsArray = (arr: any[]) => Array.isArray(arr);
-    export const AllElementsAre = Curry((
-        p: Predicate,
-        arr: any[]
-    ): boolean => arr.every(p));
-    export const SomeElementsAre =  Curry((
-        p: Predicate,
-        arr: any[]
-    ): boolean => arr.some(p));
-    export const NoElementIs =  Curry((
-        p: Predicate,
-        arr: any[]
-    ): boolean => !arr.some(p));
+    export const IsArray = arr => Array.isArray(arr);
+
+    export const Every: {
+        <T1>(
+            p: Unary<T1, boolean>,
+            arr: T1[],
+        ): boolean
+        <T1>(
+            p: Unary<T1, boolean>,
+        ): Unary<T1[], boolean>
+    } = Curry((p: Predicate, arr: any[]): boolean => arr.every(p));
+    export const Some: {
+        <T1>(
+            p: Unary<T1, boolean>,
+            arr: T1[],
+        ): boolean
+        <T1>(
+            p: Unary<T1, boolean>,
+        ): Unary<T1[], boolean>
+    } =  Curry((p: Predicate, arr: any[]): boolean => arr.some(p));
+    export const None: {
+        <T1>(
+            p: Unary<T1, boolean>,
+            arr: T1[],
+        ): boolean
+        <T1>(
+            p: Unary<T1, boolean>,
+        ): Unary<T1[], boolean>
+    } =  Curry((p: Predicate, arr: any[]): boolean => !arr.some(p));
+
     export const ContainedIn: {
         <T1>(
             arr: T1[],
@@ -201,6 +239,7 @@ export namespace arr {
         const supSet = new Set(sup);
         return sub.every(subel => supSet.has(subel));
     });
+
     export const EqualsArray =  Curry((arr: any[], arrUnderTest: any[]): boolean => {
         if(arr.length !== arrUnderTest.length) {
             return false
