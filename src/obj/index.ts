@@ -1,6 +1,6 @@
-import {Curry, Exists, InCase, IsOfType, Pipe, Swap, TRUE, Identity, When, TypeOf} from "../core";
-import {Curried2, DataObject, DeepPartial, DeepRequired, Unary} from "../core.types";
-import {Focus, OptionalPath, Path} from "./index.types";
+import { Curry, Exists, Identity, InCase, IsOfType, Pipe, Swap, TRUE, TypeOf } from "../core";
+import { Curried2, DataObject, DeepPartial, Unary } from "../core.types";
+import { Focus, OptionalPath } from "./index.types";
 
 export namespace obj {
     export const Keys = <T1 extends DataObject>(obj: T1): (keyof T1 & string)[] => Object.keys(obj);
@@ -11,7 +11,7 @@ export namespace obj {
         return entries.reduce((b, [k, v]) => (b[k] = v, b), {} as T1);
     }
 
-    export const DeepCopy = <T1>(obj: T1): T1 => {
+    export const DeepCopy = <T1 extends DataObject>(obj: T1): T1 => {
         return InCase<T1, T1>([
             [IsOfType('array'), arr => (arr as any).map(DeepCopy)],
             [IsOfType('object'), Pipe([
@@ -35,15 +35,15 @@ export namespace obj {
     } = Curry((def, obj) => {
         const objCopy = DeepCopy(obj);
         const defCopy = DeepCopy(def);
-        const allProps = [...new Set([...Keys(objCopy), ...Keys(defCopy)])];
+        const allKeys = [...new Set([...Keys(objCopy), ...Keys(defCopy)])];
 
-        for(const key of allProps) {
+        for(const key of allKeys) {
             objCopy[key] = InCase([
                 [   // if both are objects, merge them again
                     (both) => both.every(IsOfType("object")),
                     ([def, o]) => WithDefault(def, o)],
-                [([_, v]) => Exists(v), ([_, v]) => v],// if not, and obj has value, simply replace
-                [TRUE, ([defv, _]) => defv],          // if there's no value, return default
+                [([_, v]) => Exists(v), ([_, v]) => v],// if obj has value, leave the value as it is
+                [TRUE, ([defv, _]) => defv],          // if there's no value, put default in it
             ], [defCopy[key], objCopy[key]])
         }
 

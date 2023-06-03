@@ -1,5 +1,4 @@
 import {obj} from "./index";
-import {Focus} from "./index.types";
 
 type CatParent = {
     age: number;
@@ -250,8 +249,11 @@ describe('Put', () => {
         const result = obj.Put(["child", "age"], 2, person);
         const result2 = obj.Put(["child", "friend", "name"], newName, person);
 
+        // can't put string '' where must be a number
         // @ts-expect-error
-        const err = obj.Put(["child", "age"], '', person);
+        const err = obj.Put(["child", "age"], '', person); 
+
+        // can't put an array where must be a string
         // @ts-expect-error
         const err2 = obj.Put(["child", "friend", "name"], [], person);
 
