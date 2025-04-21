@@ -85,15 +85,15 @@ describe('InCase', () => {
 
 describe('Compose', () => {
     it('should compose multiple functions into one', () => {
-        const inc = a => a + 1;
-        const mul2 = a => a * 2;
-        const min3 = a => a - 3;
+        const inc = (a: number) => a + 1;
+        const mul2 = (a: number) => a * 2;
+        const min3 = (a: number) => a - 3;
 
-        const add1mul2min3 = Compose([
+        const add1mul2min3 = Compose(
             min3,
             mul2,
             inc,
-        ]);
+       );
 
         const nineteen = add1mul2min3(10);
 
@@ -122,8 +122,8 @@ describe('IsOfType', () => {
 
 describe('CanBeDescribedAs', () => {
     it('should return true in case all predicates return true', () => {
-        const isInt = Satisfies<number>([
-            (int) => int % 1 === 0,
+        const isInt = Satisfies([
+            (int: number) => int % 1 === 0,
             int => typeof int === 'number'
         ])
 
@@ -137,7 +137,7 @@ describe('CanBeDescribedAs', () => {
 
 describe('IfElse', () => {
   it('Should return different values depending on condition', () => {
-    const if5then3else10 = IfElse<number, number>(Is(5), Return(3), Return(10));
+    const if5then3else10 = IfElse(Is(5), Return(3), Return(10));
 
     const three = if5then3else10(5);
     const ten = if5then3else10(10);

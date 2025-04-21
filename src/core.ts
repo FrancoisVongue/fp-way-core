@@ -1,248 +1,74 @@
-import {
-    Binary,
-    Curried2, Curried3,
-    JSTypesWithArrayAndNull,
-    Predicate,
-    TCurry,
-    Unary, UnaryPredicate
-} from "./core.types";
+import * as R from 'ramda';
+import { Binary, FunctionTypes, JSTypesWithArrayAndNull, TCurry, Unary } from './core.types';
 
 export const Curry: TCurry = function (f, ...initialArgs) {
     return function curried(...newArgs) {
         const args = [...initialArgs, ...newArgs];
-
         if (args.length >= f.length)
             return f(...args);
         else
             return (Curry as any)(f, ...args);
     }
-}
+};
 
-export const Identity = <T1>(v: T1) => v;
-export const Const = <T>(a: T) => (_?) => a;
-export const Variable = (_?) => <T>(b: T) => b;
+export const Pipe = R.pipe; // Left-to-right composition
+export const Compose = R.compose; // Right-to-left composition
+
+// Core utilities from Ramda
+export const Identity = R.identity; // Simple identity function
+export const Const = R.always; // Returns a constant value
 export const Return = Const;
-export const TRUE = Const(true);
-export const FALSE = Const(false);
-export const DoNothing = (_?) => {};
-export const Not = (f: Predicate): Predicate => (...args) => !f(...args);
+export const TRUE = R.T; // Always true
+export const FALSE = R.F; // Always false
+export const DoNothing = (_?: any) => { };
+export const Not = R.complement; // Negates a value or predicate
+export const Is = R.equals; // Equality check (curried by Ramda)
+export const Exists = Not(R.isNil); // Not null or undefined
+export const Variable = (_?: any) => <T>(b: T) => b;
 
-export const Is = Curry((a, b) => a === b);
-export const IsNot = Not(Is);
-export const Exists = a => !(a === null || a === undefined);
-export const NotExists = a => (a === null || a === undefined);
+// Swaps the order of arguments for a binary function
+export const Swap: FunctionTypes.Swap = Curry(
+    <T1, T2, R>(fn: Binary<T1, T2, R>) => (b: T2, a: T1): R => fn(a, b)
+);
 
-export const Swap = <T1, T2, R>(
-    f: Binary<T1, T2, R> | Curried2<T1, T2, R>
-): Curried2<T2, T1, R> => Curry((a, b) => f(b,a)) as any;
+export const Satisfies = R.allPass; // Replaces R.all(R.applyTo(value), predicates)
+export const IsEither = R.anyPass;   // Replaces R.any(R.applyTo(value), predicates)
+export const IsNeither = Not(R.anyPass); // Replaces R.none(R.applyTo(value), predicates)
 
-export const Call = Curry((f: Function, v) => f(v));
-export const ApplyOn = Swap(Call);
-
-export const IfElse: {
-    <T, R>(
-        predicate: Unary<T, boolean>,
-        onSuccess: Unary<T, R>,
-        onFail: Unary<T, R>,
-        value: T
-    ): R
-
-    <T, R>(
-        predicate: Unary<T, boolean>,
-        onSuccess: Unary<T, R>,
-        onFail: Unary<T, R>,
-    ): Unary<T, R>
-
-    <T, R>(
-        predicate: Unary<T, boolean>,
-        onSuccess: Unary<T, R>,
-    ): Curried2<Unary<T, R>, T, R>
-
-    <T, R>(
-        predicate: Unary<T, boolean>,
-    ): Curried3<Unary<T, R>, Unary<T, R>, T, R>
-} = Curry((
-    p, onSuccess, onFail, arg
-) => p(arg) ? onSuccess(arg) : onFail(arg));
-
-export const When: {
-    <T>(
-        predicate: Unary<T, boolean>,
-        onSuccess: Unary<T, T>,
-        value: T
-    ): T
-
-    <T>(
-        predicate: Unary<T, boolean>,
-        onSuccess: Unary<T, T>,
-    ): Unary<T, T>
-
-    <T>(
-        predicate: Unary<T, boolean>,
-    ): Curried2<Unary<T, T>, T, T>
-} = Curry((p, f, a) => p(a) ? f(a) : a);
-
-export const Unless: {
-    <T, R>(
-        predicate: Unary<T, boolean>,
-        onFail: Unary<T, R>,
-        value: T
-    ): R
-
-    <T, R>(
-        predicate: Unary<T, boolean>,
-        onFail: Unary<T, R>,
-    ): Unary<T, R>
-
-    <T, R>(
-        predicate: Unary<T, boolean>,
-    ): Curried2<Unary<T, R>, T, R>
-} = Curry((p, f, a) => !p(a) ? f(a) : a);
-
-export const InCase: {
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
-        v: T
-    ): R
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
-    ): Unary<T, R>
-} = Curry((
-    entries: [Unary<any, boolean>, Unary<any, any>][],
-    v: any
-): any => {
-    for(let entry of entries) {
-        const [predicate, f] = entry;
-        if(predicate(v)) {
-            return f(v);
+// Custom functions not directly in Ramda
+export const InCase: FunctionTypes.InCase = Curry(
+    <T, R>(entries: [Unary<T, boolean>, Unary<T, R>][], v: T): R | void => {
+        for (const [predicate, f] of entries) {
+            if (predicate(v)) return f(v);
         }
+        return void 0; 
     }
-    return v;
-});
+);
 
-export const IndependentInCase: {
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
-        v: T
-    ): R[]
-    <T, R>(
-        entries: [Unary<T, boolean>, Unary<T, R>][],
-    ): Unary<T, R[]>
-} = Curry((
-    entries: [Unary<any, boolean>, Unary<any, any>][],
-    val: any
-): any[] => {
-    const results: any[] = [];
-
-    for(let entry of entries) {
-        const [predicate, f] = entry;
-        if(predicate(val)) {
-            results.push(f(val));
+export const IndependentInCase: FunctionTypes.IndependentInCase = Curry(
+    <T, R>(entries: [Unary<T, boolean>, Unary<T, R>][], v: T): R[] => {
+        const results: R[] = [];
+        for (const [predicate, f] of entries) {
+            if (predicate(v)) results.push(f(v));
         }
+        return results;
     }
+);
 
-    return results;
+export const IsOfType = Curry((type: JSTypesWithArrayAndNull, v: any): boolean => {
+    return TypeOf(v) === type;
 });
 
-export const Satisfies: {
-    <T>(
-        predicates: UnaryPredicate<T>[],
-        value: T
-    ): boolean
+export const TypeOf = (v: any): JSTypesWithArrayAndNull => {
+    if (v === null) return 'null';
+    if (Array.isArray(v)) return 'array';
+    return typeof v as JSTypesWithArrayAndNull;
+};
 
-    <T>(
-        predicates: UnaryPredicate<T>[],
-    ): Unary<T, boolean>
-} = Curry((ps: Predicate[], v: any) => {
-    return ps.map(f => f(v)).every(Identity);
-});
+// Derived utilities (optional, can be composed as needed)
+export const IsNot = R.complement(Is);
+export const NotExists = R.isNil;
+export const When = R.when; // Predicate-based transformation
+export const Unless = R.unless; // Inverse of When
+export const IfElse = R.ifElse; // Conditional logic
 
-export const IsEither: {
-    <T>(
-        predicates: UnaryPredicate<T>[],
-        value: T
-    ): boolean
-
-    <T>(
-        predicates: UnaryPredicate<T>[],
-    ): Unary<T, boolean>
-} = Curry((ps: Predicate[], v: any) => {
-    return ps.map(f => f(v)).some(Identity);
-});
-
-export const IsNeither: {
-    <T>(
-        predicates: UnaryPredicate<T>[],
-        value: T
-    ): boolean
-
-    <T>(
-        predicates: UnaryPredicate<T>[],
-    ): Unary<T, boolean>
-} = Curry((ps: Predicate[], v: any) => {
-    return ps.map(f => f(v)).every(v => !v);
-});
-
-export const Pipe: {
-    <T1, R>(fns: [Unary<T1, R>], v: T1): R
-    <T1, R>(fns: [Unary<T1, R>]): Unary<T1, R>
-    <T1, T2, R>(fns: [Unary<T1, T2>, Unary<T2, R>], v: T1): R
-    <T1, T2, R>(fns: [Unary<T1, T2>, Unary<T2, R>]): Unary<T1, R>
-    <T1, T2, R>(fns: [Unary<T1, T2>, Unary<T2, R>], v: T1): R
-    <T1, T2, T3, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, R>]): Unary<T1, R>
-    <T1, T2, T3, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, R>], v: T1): R
-    <T1, T2, T3, T4, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, R>], v: T1): R
-    <T1, T2, T3, T4, T5, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, R>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, R>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, R>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, R>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, T9>, Unary<T9, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, T9>, Unary<T9, R>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, T9>, Unary<T9, T10>, Unary<T10, R>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(fns: [Unary<T1, T2>, Unary<T2, T3>, Unary<T3, T4>, Unary<T4, T5>, Unary<T5, T6>, Unary<T6, T7>, Unary<T7, T8>, Unary<T8, T9>, Unary<T9, T10>, Unary<T10, R>], v: T1): R
-} = Curry((fns: Unary<any, any>[], arg: any): Unary<any, any> => {
-    let currentArg = arg;
-
-    for(let fn of fns)
-        currentArg = fn(currentArg);
-
-    return currentArg;
-});
-
-export const Compose: {
-    <T1, R>(fns: [Unary<T1, R>], v: T1): R
-    <T1, R>(fns: [Unary<T1, R>]): Unary<T1, R>
-    <T1, T2, R>(fns: [Unary<T2, R>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, R>(fns: [Unary<T2, R>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, R>(fns: [Unary<T3, R>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, R>(fns: [Unary<T3, R>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, R>(fns: [Unary<T4, R>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, R>(fns: [Unary<T4, R>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, R>(fns: [Unary<T6, R>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, R>(fns: [Unary<T6, R>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, R>(fns: [Unary<T7, R>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, R>(fns: [Unary<T7, R>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, R>(fns: [Unary<T8, R>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, R>(fns: [Unary<T8, R>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(fns: [Unary<T9, R>, Unary<T8, T9>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, R>(fns: [Unary<T9, R>, Unary<T8, T9>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(fns: [Unary<T10, R>, Unary<T9, T10>, Unary<T8, T9>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>]): Unary<T1, R>
-    <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, R>(fns: [Unary<T10, R>, Unary<T9, T10>, Unary<T8, T9>, Unary<T7, T8>, Unary<T6, T7>, Unary<T5, T6>, Unary<T4, T5>, Unary<T3, T4>, Unary<T2, T3>, Unary<T1, T2>], v: T1): R
-} = Curry((fns: Unary<any, any>[], a: any): Unary<any, any> => Pipe(fns.reverse() as any, a));
-
-export const IsOfType = Curry((desiredType: JSTypesWithArrayAndNull, v: any) => {
-    return desiredType === TypeOf(v)
-});
-
-export const TypeOf = (v): JSTypesWithArrayAndNull => {
-    return InCase([
-        [Is(null), Return("null")],
-        [a => Array.isArray(a), Return("array")],
-        [TRUE, a => typeof a]
-    ], v);
-}
