@@ -1,41 +1,53 @@
 import { DataObject, Unary } from "../core.types";
 
 export namespace FormTypes {
+  export type Form<T1 extends DataObject> = {
+    definition: {
+      [P in keyof T1]: PropertyForm<T1, P>
+    },
+    options: Options<T1>,
+    name: string;
+  };
+
+  export type PropertyForm<T1 extends DataObject, P extends keyof T1> =
+    | { form: Form<Required<T1>[P]> }
+    | { rules: PropertyRule<Required<T1>, P>[], isOptional?: boolean, alias?: string }
+
+  export type PropertyRule<T1 extends DataObject, P extends keyof T1> = {
+    validator: (v: T1[P], k: P, o: T1) => boolean;
+    message: 
+      | ((v: T1[P], k: P, o: T1, rule: Omit<PropertyRule<T1, P>, 'validator' | 'message'>) => string)
+      | string
+
+    name: string;
+  }
+
   export type ValidationSummary<T1 extends DataObject> = {
     valid: boolean,
     errorCount: number,
     missingProperties: string[],
     redundantProperties: string[],
-    errors: Record<keyof T1 | '_self', string[]>
+    errors: {
+      keys: Partial<Record<keyof T1, string | ValidationSummary<T1[keyof T1]>>>
+      root: string | null
+      main: string | null // main error message
+    } 
   }
 
   export type ValidationError<T1 extends DataObject = any> = {
     key: Exclude<keyof T1, symbol>,
-    value: T1[keyof T1],
-    ruleIndex: number,
-    error: Error
+    value: any,
+    ruleName: string,
+    message: Error
   }
-
-  export type PopulatedOptions<T1 extends DataObject> = Required<Options<T1>>;
-
-  export type PropertyRule<T1, P extends keyof T1> = [
-    (v: T1[P], k: P, o: T1) => boolean,
-    (v: T1[P], k: P, o: T1) => string
-  ];
-
-  export type Form<T1 extends DataObject> = {
-    [P in keyof T1]:
-    | Form<Required<T1>[P]>
-    | PropertyRule<Required<T1>, P>[]
-  } & { [OptionsKey]?: Options<T1> };
 
   export type Options<T extends DataObject> = {
     earlyStop?: boolean,
-    errorHandler?: (e: ValidationError<T>) => string,
+    validationErrorHandler?: (e: ValidationError<T>) => string,
     noRedundantProperties?: boolean,
-    optionalProps?: (keyof T)[],
     isOptional?: boolean
   }
+  export type PopulatedOptions<T1 extends DataObject> = Required<Options<T1>>;
 
   // export type ExtentionSpec<T1 extends DataObject, T2 extends DataObject> =
   //   & { [ValidationOptionsSym]: ExtentionOptions<T1, T2> }
@@ -54,10 +66,10 @@ export namespace FormTypes {
   // } & Options<T2>
 
 
-  export type _CheckPropsResult = {
-    missing: string[],
+  export type PreValidationResult<T1 extends DataObject> = {
+    missing: (keyof T1)[],
+    propsToCheck: (keyof T1)[],
     redundant: string[],
-    propsToCheck: string[],
   }
 
   export interface Validate {
@@ -70,12 +82,9 @@ export namespace FormTypes {
       o: T1
     ): Unary<Form<T1>, ValidationSummary<T1>>
   }
-
-  export const OptionsKey: '$options' = '$options';
 }
 
 // add:
-// - async validation (with option to specify parallellization of requests)
 // - ability to specify "or" or "and" operator on list of rules
 // - create function that will create spec from object, giving it a descriptive name to use instead of _self
 // - give rules a name that will be used in error messages

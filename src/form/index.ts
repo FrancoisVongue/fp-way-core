@@ -1,9 +1,7 @@
 import { Curry, Exists, IsOfType } from "../core";
-import { DataObject, Unary } from "../core.types";
+import { DataObject } from "../core.types";
 import { obj } from "../obj";
 import { FormTypes } from "./index.types";
-
-const OptionsKey = FormTypes.OptionsKey;
 
 export namespace Form {
   namespace ValidationSummary {
@@ -12,10 +10,8 @@ export namespace Form {
       s.valid = false
     }
     export const addErr = (k: string, msg: string, summary: FormTypes.ValidationSummary<any>) => {
-      if (IsOfType('array', summary.errors[k])) {
-        (summary.errors[k]).push(msg);
-      } else {
-        summary.errors[k] = [msg];
+      if (!summary.errors.keys[k]) {
+        summary.errors.keys[k] = msg;
         incErrCount(summary);
       }
     }
@@ -25,7 +21,11 @@ export namespace Form {
         errorCount: 0,
         missingProperties: [],
         redundantProperties: [],
-        errors: {} as Record<keyof T1 | '_self', string[]>
+        errors: {
+          keys: {},
+          root: null,
+          main: null
+        }
       }
     }
     export const mergeNestedSummary = (
@@ -33,74 +33,65 @@ export namespace Form {
       key: string,
       nestedSummary: FormTypes.ValidationSummary<any>,
     ) => {
-      const prependKey = (v: string) => `${key}.${v}`
-
-      summary.valid = nestedSummary.valid && summary.valid;
-      summary.errorCount += nestedSummary.errorCount;
-      summary.missingProperties.push(...nestedSummary.missingProperties.map(prependKey));
-      summary.redundantProperties.push(...nestedSummary.redundantProperties.map(prependKey));
-
-      const nestedErrors: [any, any][] = obj.Entries(nestedSummary.errors)
-        .map(([nestedKey, v]) => [prependKey(nestedKey), v])
-
-      summary.errors = obj.FromEntries([
-        ...obj.Entries(summary.errors),
-        ...nestedErrors
-      ])
+      if (!nestedSummary.valid) {
+        summary.valid = false;
+        summary.errorCount += nestedSummary.errorCount;
+        summary.errors.keys[key] = nestedSummary;
+      }
     }
   }
 
   const DEFAULT_VALIDATION_OPTIONS: FormTypes.PopulatedOptions<any> = {
-    optionalProps: [],
     noRedundantProperties: true,
     earlyStop: false,
-    errorHandler: ({ key, ruleIndex }) => `Error while validating property "${key}" at rule index ${ruleIndex}`,
+    validationErrorHandler: ({ key, value, ruleName, message }) =>
+      `Error while validating property "${key}" with rule "${ruleName}": ${message}`,
     isOptional: false
   }
 
   export const _preCheckProps = <T1 extends DataObject>(
-    declaredPropsToCheck: string[],
-    options: FormTypes.PopulatedOptions<any>,
+    form: FormTypes.Form<T1>,
     o: T1
-  ): FormTypes._CheckPropsResult => {
-    const optionalProps = options.optionalProps;
-    const requiredProps = declaredPropsToCheck.filter(d => !optionalProps.includes(d));
+  ): FormTypes.PreValidationResult<T1> => {
+    const requiredProps = Object.entries(form.definition)
+      .filter(([_, v]) => !v.isOptional)
+      .map(([k]) => k);
 
-    const presentProps = obj.Entries(o)
-      .filter(([k, v]) => Exists(v))
-      .map(([k, v]) => k);
+    const presentProps = obj.Keys(o)
+      .filter(k => Exists(o[k]));
 
     const missingRequiredProps = requiredProps.filter(r => !presentProps.includes(r));
-    const redundantProps = presentProps.filter(p => !declaredPropsToCheck.includes(p));
-    const propsToCheck = presentProps.filter(p => declaredPropsToCheck.includes(p));
+    const redundantProps = presentProps.filter(p => !form.definition[p]);
+    const propsToCheck = presentProps.filter(p => form.definition[p]);
 
     return {
-      missing: missingRequiredProps,
-      propsToCheck: propsToCheck,
+      missing: missingRequiredProps as (keyof T1)[],
+      propsToCheck: propsToCheck as (keyof T1)[],
       redundant: redundantProps,
     }
   }
 
-  export const Validate: FormTypes.Validate = Curry((spec, o) => {
+  export const Validate: FormTypes.Validate = Curry((spec: FormTypes.Form<any>, o) => {
     const summary: FormTypes.ValidationSummary<any> = ValidationSummary.New();
     if (!IsOfType("object", o)) {
-      if (spec?.[OptionsKey]?.isOptional && !Exists(o)) {
+      if (spec?.options?.isOptional && !Exists(o)) {
         return summary;
       }
-      ValidationSummary.addErr('_self', 'Value must be an object', summary)
+      summary.errors.root = `Value must be an object, not ${typeof o}`;
+      ValidationSummary.incErrCount(summary);
+      return summary;
     }
 
     const options: FormTypes.PopulatedOptions<any> = obj.WithDefault(
       DEFAULT_VALIDATION_OPTIONS as any,
-      spec[OptionsKey] ?? {}
+      spec.options ?? {}
     );
 
-    const { propsToCheck, missing, redundant } =
-      _preCheckProps(obj.Keys(spec), options, o);
+    const { propsToCheck, missing, redundant } = _preCheckProps(spec, o);
 
     if (missing.length) {
       ValidationSummary.incErrCount(summary);
-      summary.missingProperties = missing;
+      summary.missingProperties = missing as string[];
     }
     if (redundant.length) {
       summary.redundantProperties = redundant;
@@ -113,27 +104,32 @@ export namespace Form {
       if (options.earlyStop && !summary.valid) { return summary; }
 
       const ptc = propsToCheck[i];
-      const keySpec = spec[ptc];
+      const keySpec = spec.definition[ptc as any];
       const value = o[ptc];
 
-      if (IsOfType('array', keySpec)) {
-        for (const rule of keySpec as FormTypes.PropertyRule<any, any>[]) {
-          const [validator, msgFactory] = rule;
-
+      if ('rules' in keySpec) {
+        for (const rule of keySpec.rules) {
           try {
-            const rulePass = validator(value, ptc, o);
-            if (!rulePass) {
-              const message: string = msgFactory(value, ptc, o);
-              ValidationSummary.addErr(ptc, message, summary);
+            const ruleSuccess = rule.validator(value, ptc as string, o);
+            if (!ruleSuccess) {
+              const message = typeof rule.message === 'function'
+                ? rule.message(value, ptc as string, o, obj.Pick(['name'], rule))
+                : rule.message;
+              ValidationSummary.addErr(ptc as string, message, summary);
             }
           } catch (e) {
-            const message = options.errorHandler({ key: ptc, value, ruleIndex: i, error: e })
-            ValidationSummary.addErr(ptc, message, summary)
+            const message = options.validationErrorHandler({
+              key: ptc as string,
+              value,
+              ruleName: rule.name,
+              message: e as Error
+            });
+            ValidationSummary.addErr(ptc as string, message, summary);
           }
         }
-      } else {
-        const nestedSummary = Validate(keySpec as FormTypes.Form<any>, value)
-        ValidationSummary.mergeNestedSummary(summary, ptc, nestedSummary)
+      } else if ('form' in keySpec) {
+        const nestedSummary = Validate(keySpec.form, value);
+        ValidationSummary.mergeNestedSummary(summary, ptc as string, nestedSummary);
       }
     }
 
@@ -155,7 +151,7 @@ export namespace Form {
   // ) => {
   //   const new_spec = obj.Impose(ext_spec, parent_spec);
   //   const new_options = obj.Impose(
-  //     ext_spec[ValidationOptionsSym] || {},
+  //     ext_spec || {},
   //     parent_spec?.[ValidationOptionsSym] || {}
   //   );
 
