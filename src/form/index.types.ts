@@ -89,8 +89,8 @@ export namespace FormTypes {
     ): ValidationSummary<T1>
 
     <T1 extends DataObject>(
-      o: T1
-    ): Unary<Form<T1>, ValidationSummary<T1>>
+      spec: Form<T1>,
+    ): Unary<T1, ValidationSummary<T1>>
   }
 }
 

@@ -15,8 +15,9 @@ export namespace UnionTypes {
     [K in keyof TDefinition]: Readonly<{ tag: K; data: TDefinition[K] }>;
   }[keyof TDefinition] | undefined;
 
+  // exhaustive must be used for exhaustive match
   export type ExhaustiveMatchHandlers<TDefinition extends Definition, TResult> = {
-    [K in keyof TDefinition]: (data: TDefinition[K]) => TResult;
+    [K in keyof TDefinition]-?: (data: TDefinition[K]) => TResult;
   };
   export type PartialMatchHandlers<TDefinition extends Definition, TResult> =
     Partial<{ [K in keyof TDefinition]: (data: TDefinition[K]) => TResult; }>
@@ -24,11 +25,13 @@ export namespace UnionTypes {
 
   export interface Match {
     <TDefinition extends UnionTypes.Definition, TResult>(
-      handlers: UnionTypes.ExhaustiveMatchHandlers<TDefinition, TResult> | UnionTypes.PartialMatchHandlers<TDefinition, TResult>,
+      handlers: UnionTypes.ExhaustiveMatchHandlers<TDefinition, TResult>
+        | UnionTypes.PartialMatchHandlers<TDefinition, TResult>,
       unionValue: UnionTypes.Variant<TDefinition>
     ): TResult;
     <TDefinition extends UnionTypes.Definition, TResult>(
-      handlers: UnionTypes.ExhaustiveMatchHandlers<TDefinition, TResult> | UnionTypes.PartialMatchHandlers<TDefinition, TResult>,
+      handlers: UnionTypes.ExhaustiveMatchHandlers<TDefinition, TResult>
+        | UnionTypes.PartialMatchHandlers<TDefinition, TResult>,
     ): Unary<UnionTypes.Variant<TDefinition>, TResult>;
   }
 }
