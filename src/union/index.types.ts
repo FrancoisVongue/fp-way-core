@@ -8,6 +8,8 @@ export namespace UnionTypes {
     & Pick<T, K>
     & Partial<Record<Exclude<TKeys, K>, undefined>>
   }[TKeys];
+  
+  export type OneOf<T extends Definition, K extends keyof T = keyof T> = Variant<T, K>
 
   export type ActiveVariantEntry<TDefinition extends Definition> = {
     [K in keyof TDefinition]: Readonly<{ tag: K; data: TDefinition[K] }>;

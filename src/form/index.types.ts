@@ -1,4 +1,5 @@
 import { DataObject, Unary } from "../core.types";
+import { UnionTypes } from "../union/index.types";
 
 export namespace FormTypes {
   export type Form<T1 extends DataObject> = {
@@ -15,23 +16,32 @@ export namespace FormTypes {
 
   export type PropertyRule<T1 extends DataObject, P extends keyof T1> = {
     validator: (v: T1[P], k: P, o: T1) => boolean;
-    message: 
-      | ((v: T1[P], k: P, o: T1, rule: Omit<PropertyRule<T1, P>, 'validator' | 'message'>) => string)
-      | string
+    message:
+    | ((
+      v: T1[P],
+      k: P,
+      o: T1,
+      rule: Omit<PropertyRule<T1, P>, 'validator' | 'message'>
+    ) => string)
+    | string
 
     name: string;
   }
 
+  export type ValidationKeyError<T1 extends DataObject> = UnionTypes.OneOf<{
+    string: string,
+    nestedSummary: ValidationSummary<T1[keyof T1]>,
+  }>
+
   export type ValidationSummary<T1 extends DataObject> = {
     valid: boolean,
     errorCount: number,
-    missingProperties: string[],
-    redundantProperties: string[],
     errors: {
-      keys: Partial<Record<keyof T1, string | ValidationSummary<T1[keyof T1]>>>
+      keys: Partial<Record<keyof T1, ValidationKeyError<T1[keyof T1]>>>
+      missingProperties: string[],
+      redundantProperties: string[],
       root: string | null
-      main: string | null // main error message
-    } 
+    }
   }
 
   export type ValidationError<T1 extends DataObject = any> = {

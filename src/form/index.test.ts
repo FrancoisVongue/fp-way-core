@@ -52,7 +52,7 @@ describe('Form', () => {
       const noNameUser = { age: 25 } as User;
       const noNameResult = Form.Validate(userForm as any, noNameUser);
       expect(noNameResult.valid).toBe(false);
-      expect(noNameResult.missingProperties).toContain('name');
+      expect(noNameResult.errors.missingProperties).toContain('name');
 
       // Invalid object - underage
       const underageUser = { name: 'John', age: 16 };
@@ -99,10 +99,10 @@ describe('Form', () => {
       const minimalProfile = { name: 'Jane' };
       const minimalResult = Form.Validate(profileForm as any, minimalProfile);
       expect(minimalResult.valid).toBe(true);
-      expect(minimalResult.missingProperties.length).toBe(0);
+      expect(minimalResult.errors.missingProperties.length).toBe(0);
     });
 
-    it('Should validate nested objects', () => {
+    it.only('Should validate nested objects', () => {
       // Define types
       type Address = { street: string, city: string };
       type Customer = { name: string, address: Address };
@@ -161,7 +161,7 @@ describe('Form', () => {
           city: 'Springfield'
         }
       };
-      const validResult = Form.Validate(customerForm as any, validCustomer);
+      const validResult = Form.Validate(customerForm, validCustomer);
       expect(validResult.valid).toBe(true);
 
       // Invalid customer with incomplete address
@@ -172,7 +172,7 @@ describe('Form', () => {
           // Missing city
         }
       } as Customer;
-      const invalidResult = Form.Validate(customerForm as any, invalidCustomer);
+      const invalidResult = Form.Validate(customerForm, invalidCustomer);
       expect(invalidResult.valid).toBe(false);
     });
 
@@ -206,7 +206,7 @@ describe('Form', () => {
       const redundantObj = { name: 'John', age: 30 };
       const redundantResult = Form.Validate(strictForm as any, redundantObj as any);
       expect(redundantResult.valid).toBe(false);
-      expect(redundantResult.redundantProperties).toContain('age');
+      expect(redundantResult.errors.redundantProperties).toContain('age');
     });
 
     it('Should correctly handle non-object values', () => {

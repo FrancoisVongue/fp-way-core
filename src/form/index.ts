@@ -11,7 +11,7 @@ export namespace Form {
     }
     export const addErr = (k: string, msg: string, summary: FormTypes.ValidationSummary<any>) => {
       if (!summary.errors.keys[k]) {
-        summary.errors.keys[k] = msg;
+        summary.errors.keys[k] = { string: msg };
         incErrCount(summary);
       }
     }
@@ -19,12 +19,11 @@ export namespace Form {
       return {
         valid: true,
         errorCount: 0,
-        missingProperties: [],
-        redundantProperties: [],
         errors: {
           keys: {},
+          missingProperties: [],
+          redundantProperties: [],
           root: null,
-          main: null
         }
       }
     }
@@ -36,7 +35,7 @@ export namespace Form {
       if (!nestedSummary.valid) {
         summary.valid = false;
         summary.errorCount += nestedSummary.errorCount;
-        summary.errors.keys[key] = nestedSummary;
+        summary.errors.keys[key] = { nestedSummary: nestedSummary };
       }
     }
   }
@@ -91,10 +90,10 @@ export namespace Form {
 
     if (missing.length) {
       ValidationSummary.incErrCount(summary);
-      summary.missingProperties = missing as string[];
+      summary.errors.missingProperties = missing as string[];
     }
     if (redundant.length) {
-      summary.redundantProperties = redundant;
+      summary.errors.redundantProperties = redundant;
       if (options.noRedundantProperties) {
         ValidationSummary.incErrCount(summary);
       }
@@ -113,7 +112,7 @@ export namespace Form {
             const ruleSuccess = rule.validator(value, ptc as string, o);
             if (!ruleSuccess) {
               const message = typeof rule.message === 'function'
-                ? rule.message(value, ptc as string, o, obj.Pick(['name'], rule))
+                ? rule.message(value, ptc as string, o, obj.Omit(['message', 'validator'], rule))
                 : rule.message;
               ValidationSummary.addErr(ptc as string, message, summary);
             }
