@@ -1,12 +1,62 @@
 {
   "name": "fp-way-core",
   "version": "1.3.1",
-  "description": "Set core methods",
+  "description": "A simple, type-safe functional programming library for JavaScript/TypeScript with intuitive type-based organization",
   "main": "lib/index.js",
+  "module": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js",
+      "require": "./lib/index.js"
+    },
+    "./core": {
+      "types": "./lib/core.d.ts",
+      "import": "./lib/core.js",
+      "require": "./lib/core.js"
+    },
+    "./bool": {
+      "types": "./lib/bool/index.d.ts",
+      "import": "./lib/bool/index.js",
+      "require": "./lib/bool/index.js"
+    },
+    "./num": {
+      "types": "./lib/num/index.d.ts",
+      "import": "./lib/num/index.js",
+      "require": "./lib/num/index.js"
+    },
+    "./str": {
+      "types": "./lib/str/index.d.ts",
+      "import": "./lib/str/index.js",
+      "require": "./lib/str/index.js"
+    },
+    "./obj": {
+      "types": "./lib/obj/index.d.ts",
+      "import": "./lib/obj/index.js",
+      "require": "./lib/obj/index.js"
+    },
+    "./arr": {
+      "types": "./lib/arr/index.d.ts",
+      "import": "./lib/arr/index.js",
+      "require": "./lib/arr/index.js"
+    },
+    "./union": {
+      "types": "./lib/union/index.d.ts",
+      "import": "./lib/union/index.js",
+      "require": "./lib/union/index.js"
+    },
+    "./form": {
+      "types": "./lib/form/index.d.ts",
+      "import": "./lib/form/index.js",
+      "require": "./lib/form/index.js"
+    }
+  },
   "files": [
-    "lib/*"
+    "lib/**/*",
+    "README.md",
+    "LICENSE"
   ],
-  "types": "lib",
   "scripts": {
     "start": "node src",
     "test": "bun test",
@@ -20,11 +70,22 @@
   },
   "keywords": [
     "fp",
-    "lambda",
     "functional-programming",
-    "function",
-    "pure"
+    "typescript",
+    "javascript",
+    "validation",
+    "form-validation",
+    "utility",
+    "library",
+    "ramda",
+    "curried",
+    "immutable",
+    "type-safe"
   ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "sideEffects": false,
   "author": "Francois Vongue",
   "license": "MIT",
   "devDependencies": {

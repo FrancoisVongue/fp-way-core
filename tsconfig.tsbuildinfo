@@ -1,0 +1,1 @@
+{"root":["./src/core.ts","./src/core.types.ts","./src/index.ts","./src/arr/index.ts","./src/arr/index.types.ts","./src/bool/index.ts","./src/form/index.ts","./src/form/index.types.ts","./src/num/index.ts","./src/obj/index.ts","./src/obj/index.types.ts","./src/str/index.ts","./src/union/index.ts","./src/union/index.types.ts"],"version":"5.8.2"}
