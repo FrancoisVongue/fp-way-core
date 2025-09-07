@@ -38,7 +38,7 @@ describe('arr', () => {
             ];
             const numArr = arr.Flatten(groupedArr)
 
-            expect(numArr.every(IsOfType('number'))).toBe(true);
+            expect(numArr.every(v => IsOfType('number', v))).toBe(true);
         })
     });
     describe('Subtract', function () {
@@ -109,7 +109,7 @@ describe('arr', () => {
             expect(array).toEqual([1, 2, 3])
         })
         it('should return undefined in case of an empty array', () => {
-            const array = [];
+            const array: [] = [];
             const result = arr.Head(array);
 
             expect(result).toBeUndefined()
@@ -124,7 +124,7 @@ describe('arr', () => {
             expect(array).toEqual([1, 2, 3])
         })
         it('should return undefined in case of an empty array', () => {
-            const array = [];
+            const array: [] = [];
             const result = arr.Head(array);
 
             expect(result).toBeUndefined()
@@ -138,7 +138,7 @@ describe('arr', () => {
             expect(result).toEqual([1, 2]);
         })
         it('should return empty array in case of an empty array', () => {
-            const array = [];
+            const array: [] = [];
             const result = arr.TakeNFirst(3, array);
 
             expect(result).toEqual([]);
@@ -152,7 +152,7 @@ describe('arr', () => {
             expect(result).toEqual([2, 3]);
         })
         it('should return empty array in case of an empty array', () => {
-            const array = [];
+            const array: [] = [];
             const result = arr.TakeNLast(3, array);
 
             expect(result).toEqual([]);

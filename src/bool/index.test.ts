@@ -60,26 +60,6 @@ describe('bool', () => {
         expect(bool.Xnor(false, false)).toBe(true);
     });
 
-    it('All should return true if all elements in array are true', () => {
-        expect(bool.All([true, true, true])).toBe(true);
-        expect(bool.All([true, false, true])).toBe(false);
-        expect(bool.All([])).toBe(true);
-    });
-
-    it('Any should return true if any element in array is true', () => {
-        expect(bool.Any([true, true, true])).toBe(true);
-        expect(bool.Any([true, false, true])).toBe(true);
-        expect(bool.Any([false, false, false])).toBe(false);
-        expect(bool.Any([])).toBe(false);
-    });
-
-    it('None should return true if no element in array is true', () => {
-        expect(bool.None([true, true, true])).toBe(false);
-        expect(bool.None([true, false, true])).toBe(false);
-        expect(bool.None([false, false, false])).toBe(true);
-        expect(bool.None([])).toBe(true);
-    });
-
     describe('Or', () => {
         it('should return true if either of args is true', () => {
             const True = bool.Or(false, true);

@@ -5,7 +5,7 @@ export namespace num {
     export const ParseFloat = (s: string) => Number.parseFloat(s);
 
     // validate
-    export const IsNum = IsOfType("number");
+    export const IsNum = (v: any) => IsOfType("number", v);
     export const IsQuotientOf = Curry((n1: number, n2: number) => n2 % n1 === 0)
     export const IsInt = (n: number) => Number.isInteger(n);
     export const IsNaN = (n: any) => Number.isNaN(n);

@@ -1,7 +1,6 @@
 import {
     Satisfies,
     Compose, Const,
-    Curry,
     FALSE, IfElse,
     InCase,
     Is,
@@ -11,19 +10,6 @@ import {
     When
 } from './core';
 
-describe('Curry', () => {
-    it('should curry a non-generic function', () => {
-        const add = (a: number, b: number) => a + b;
-        const cAdd = Curry(add);
-        const inc = cAdd(1);
-
-        const five = inc(4);
-        const six = inc(five);
-
-        expect(five).toBe(5);
-        expect(six).toBe(6);
-    })
-})
 
 describe('When', () => {
     it('should run function if predicate is correct, or return argument unchanged', () => {

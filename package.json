@@ -78,7 +78,6 @@
     "utility",
     "library",
     "ramda",
-    "curried",
     "immutable",
     "type-safe"
   ],

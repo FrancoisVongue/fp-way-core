@@ -8,62 +8,51 @@ import { DataObject, DeepPartial } from '../core.types';
 import { objTypes } from './index.types';
 
 export namespace obj {
-  // Basic Object Accessors
   export const Keys: objTypes.Keys = <T extends DataObject>(obj: T) => Object.keys(obj) as (keyof T & string)[];
   export const Values: objTypes.Values = <T extends DataObject>(obj: T) => Object.values(obj);
   export const Entries: objTypes.Entries = <T extends DataObject>(obj: T) => Object.entries(obj) as [string, any][];
   export const FromEntries: objTypes.FromEntries = <T extends DataObject>(entries: [string, any][]) =>
     Object.fromEntries(entries) as T;
 
-  // Deep Copy - self-contained implementation for recursion
   export const DeepCopy: objTypes.DeepCopy = <T extends DataObject>(obj: T): T => {
-    // Use a WeakMap to track copied objects and avoid circular reference issues
     const visited = new WeakMap<any, any>();
 
-    // Define a recursive function inside to avoid namespace references
     function deepCopyInternal(value: any): any {
-      // Handle null or undefined
       if (value === null || value === undefined) {
         return value;
       }
 
-      // Check if we've already copied this object
       if (typeof value === 'object' && visited.has(value)) {
         return visited.get(value);
       }
 
-      // Handle arrays
       if (Array.isArray(value)) {
         const result = [];
-        visited.set(value, result); // Store the array before copying elements
+        visited.set(value, result);
         value.forEach((item, index) => {
           (result[index] as any) = deepCopyInternal(item);
         });
         return result;
       }
 
-      // Handle objects
       if (typeof value === 'object') {
         const result: any = {};
-        visited.set(value, result); // Store the object before copying properties
+        visited.set(value, result);
         Object.entries(value).forEach(([k, v]) => {
           result[k] = deepCopyInternal(v);
         });
         return result;
       }
 
-      // Return primitives as-is
       return value;
     }
 
     return deepCopyInternal(obj) as T;
   };
 
-  // Merging with Defaults
   export const WithDefault: objTypes.WithDefault = Curry(<T extends DataObject>(def: T, obj2: DeepPartial<T>): T => {
-    // Create internal implementation to avoid namespace references
     function withDefaultInternal(defaultObj: any, partialObj: any): any {
-      if (!IsOfType('object')(defaultObj) || !IsOfType('object')(partialObj)) {
+      if (!IsOfType('object', defaultObj) || !IsOfType('object', partialObj)) {
         return Exists(partialObj) ? partialObj : defaultObj;
       }
 
@@ -74,7 +63,7 @@ export namespace obj {
         const defValue = defaultObj[key];
         const objValue = partialObj[key];
 
-        if (IsOfType('object')(defValue) && IsOfType('object')(objValue)) {
+        if (IsOfType('object', defValue) && IsOfType('object', objValue)) {
           result[key] = withDefaultInternal(defValue, objValue);
         } else if (Exists(objValue)) {
           result[key] = objValue;
@@ -95,7 +84,6 @@ export namespace obj {
     return obj.WithDefault(def, o);
   });
 
-  // Property Selection
   export const Pick: objTypes.ObjPick = Curry(<T extends DataObject, K extends keyof T>(keys: K[], object: T): Pick<T, K> => {
     const objCopy = obj.DeepCopy(object);
     const result = {} as Pick<T, K>;
@@ -121,14 +109,11 @@ export namespace obj {
     return result as Omit<T, K>;
   });
 
-  // Flattening and Path Operations
   export const Flatten: objTypes.Flatten = <T extends DataObject>(object: T): DataObject => {
-    // Define internal recursive function to avoid namespace references
     function flattenInternal(obj: any, prefix = ''): [string, any][] {
       const result: [string, any][] = [];
 
       if (Array.isArray(obj)) {
-        // Handle arrays specifically - add each index as a key
         obj.forEach((item, index) => {
           const fullKey = prefix ? `${prefix}.${index}` : `${index}`;
           if (typeof item === 'object' && item !== null) {
@@ -138,12 +123,10 @@ export namespace obj {
           }
         });
       } else if (typeof obj === 'object' && obj !== null) {
-        // Handle regular objects
         Object.entries(obj).forEach(([key, value]) => {
           const fullKey = prefix ? `${prefix}.${key}` : key;
 
           if (Array.isArray(value)) {
-            // Handle nested arrays
             value.forEach((item, index) => {
               const arrayKey = `${fullKey}.${index}`;
               if (typeof item === 'object' && item !== null) {
@@ -152,7 +135,7 @@ export namespace obj {
                 result.push([arrayKey, item]);
               }
             });
-          } else if (Exists(value) && IsOfType('object')(value)) {
+          } else if (Exists(value) && IsOfType('object', value)) {
             result.push(...flattenInternal(value, fullKey));
           } else {
             result.push([fullKey, value]);
@@ -187,7 +170,7 @@ export namespace obj {
 
   export const Put: objTypes.Put = Curry(
     <T extends DataObject>(path: string[] | (keyof T)[], value: any, object: T): T => {
-      if (!IsOfType('object')(object)) {
+      if (!IsOfType('object', object)) {
         throw new Error(`Invalid input to Put: type must be "object", got ${TypeOf(object)}`);
       }
 
@@ -210,7 +193,7 @@ export namespace obj {
 
       for (let i = 0; i < props.length; i++) {
         const prop = props[i];
-        current[prop] = IsOfType('object')(current[prop]) ? current[prop] : {};
+        current[prop] = IsOfType('object', current[prop]) ? current[prop] : {};
         current = current[prop];
       }
 
@@ -219,7 +202,6 @@ export namespace obj {
     }
   );
 
-  // Additional Path Utilities
   export const HasPath: objTypes.HasPath = Curry(
     <T extends DataObject>(path: string[] | (keyof T)[], object: T): boolean => {
       if (path.length === 0) return true;
@@ -227,15 +209,13 @@ export namespace obj {
       let current: any = object;
 
       for (const key of path) {
-        // For arrays, check if key is a valid index
         if (Array.isArray(current)) {
           const index = parseInt(key as string, 10);
-          // Check if key is a valid array index
           if (Number.isNaN(index) || index < 0 || index >= current.length) {
             return false;
           }
           current = current[index];
-        } else if (!Exists(current) || !IsOfType('object')(current) || !(key in current)) {
+        } else if (!Exists(current) || !IsOfType('object', current) || !(key in current)) {
           return false;
         } else {
           current = current[key];
@@ -246,13 +226,11 @@ export namespace obj {
     }
   );
 
-  // Merging and Combining
   export const Merge: objTypes.Merge = Curry(<A extends DataObject, B extends DataObject>(a: A, b: B): A & B => {
     return obj.DeepCopy({ ...a, ...b }) as A & B;
   });
 
 
-  // =========== mapping
   export const Map: objTypes.Map = Curry((
     mapSpec: objTypes.ObjectMapSpec<any, any>,
     originalSrc: DataObject
@@ -263,11 +241,9 @@ export namespace obj {
       throw Error(`Invalid input to Map: src must be an object`);
 
     const src = obj.DeepCopy(originalSrc);
-    // const fnsWithParamsAndKey: FPK[] = [];
     const entries: [string, any][] = [];
 
     for (let [destKey, mapper] of obj.Entries(mapSpec)) {
-      // fnsWithParamsAndKey.push([mapper, src, destKey]);
       const key = destKey as keyof typeof src;
       const value = mapper(src);
       entries.push([key, value]);

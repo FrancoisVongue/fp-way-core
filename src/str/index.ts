@@ -1,4 +1,4 @@
-import { Curry } from "../core";
+import { Curry, IsOfType } from "../core";
 
 export namespace str {
     // transformation
@@ -22,6 +22,7 @@ export namespace str {
     export const SuffixWith = Curry((suff: string, s2: string) => s2 + suff);
 
     // validate
+    export const IsString = (v: any) => IsOfType("string", v);
     export const Matches = Curry((regex: RegExp, str: string): boolean => regex.test(str));
     export const IsOfLength = Curry((l: number, s: string) => s.length === l);
     export const StartsWith = Curry((start: string, s: string) => s.startsWith(start));
