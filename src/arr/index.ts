@@ -18,10 +18,6 @@ export namespace arr {
     export const Exclude = <T1>(p: (value: T1, index: number, array: T1[]) => boolean, arr: T1[]): T1[] => arr.filter(Not(p));
     export const Map = <T1, T2>(f: (value: T1, index: number, array: T1[]) => T2, arr: T1[]): T2[] => arr.map(f);
     export const Reduce = <T1, R>(reducer: (previousValue: R, currentValue: T1, currentIndex: number, array: T1[]) => R, base: R, arr: T1[]): R => arr.reduce(reducer, base);
-    export const Distinct = <T>(arr: T[]): T[] => {
-        const seen = new Set();
-        return arr.filter(v => !seen.has(v) && (seen.add(v), true));
-    };
 
     export const Reverse = <T>(arr: T[]): T[] => [...arr].reverse();
 
@@ -37,18 +33,16 @@ export namespace arr {
 
     // Default SortBy (no comparator, type-specific behavior)
     export const SortBy = <T, K extends number | string>(
-        fn: Unary<T, K>,
+        fn: (value: T) => K,
         order: string,
         arr: T[]
     ): T[] => {
         const defaultComparator = (ka: K, kb: K): number => {
             if (typeof ka === "number" && typeof kb === "number") {
                 return ka - kb; // Numeric ascending
+            } else {
+                return ka.toString().localeCompare(kb.toString()); // Locale-aware string comparison
             }
-            if (typeof ka === "string" && typeof kb === "string") {
-                return ka.localeCompare(kb); // Locale-aware string comparison
-            }
-            throw new Error("arr.SortBy: Inconsistent key types or unsupported type");
         };
         const compare = order === "asc"
             ? defaultComparator
@@ -57,7 +51,7 @@ export namespace arr {
         return [...arr].sort((a, b) => compare(fn(a), fn(b)));
     };
 
-    export const Find = <T>(p: Unary<T, boolean>, arr: T[]): T | undefined => arr.find(p);
+    export const Find = <T>(p: (value: T) => boolean, arr: T[]): T | undefined => arr.find(p);
 
     export const Tail = <T1>(arr: T1[]): T1[] => [...arr].slice(1);
     export const Nose = <T1>(arr: T1[]): T1[] => [...arr].slice(0, -1)
@@ -77,25 +71,6 @@ export namespace arr {
             , b), [])
     }
 
-    export const Intersection = <T1>(arr1: T1[], arr2: T1[]): T1[] => {
-        const [smallerArr, biggerArr] = arr1.length > arr2.length
-            ? [arr2, arr1]
-            : [arr1, arr2];
-
-        const smallSet = new Set(smallerArr);
-        return biggerArr.filter(smallSet.has.bind(smallSet));
-    };
-    export const Subtract = <T1>(arr1: T1[], arr2: T1[]): T1[] => {
-        const set1 = new Set(arr1);
-        return arr2.filter(v => !set1.has(v));
-    };
-
-    // Partition: Splits an array into two based on a predicate
-    export const Partition = <T>(p: Predicate, arr: T[]): [T[], T[]] => [
-        arr.filter(p),
-        arr.filter(Not(p)),
-    ];
-
     // Chunk: Splits an array into chunks of a specified size
     export const Chunk = <T>(size: number, arr: T[]): T[][] => {
         if (size <= 0) return [arr];
@@ -107,7 +82,7 @@ export namespace arr {
     };
 
     // GroupBy: Groups array elements by a key function
-    export const GroupBy = <T>(fn: Unary<T, string>, arr: T[]): Record<string, T[]> =>
+    export const GroupBy = <T>(fn: (value: T) => string, arr: T[]): Record<string, T[]> =>
         arr.reduce((acc, v) => {
             const key = fn(v);
             acc[key] = acc[key] || [];
@@ -122,33 +97,12 @@ export namespace arr {
     };
 
     // validate
-    export const IsArray = <T>(arr: T[]): boolean => Array.isArray(arr);
+    export const IsArray = (value: unknown): value is any[] => Array.isArray(value);
 
     export const Every = <T1>(p: (value: T1, index: number, array: T1[]) => boolean, arr: T1[]): boolean => arr.every(p);
     export const Some = <T1>(p: (value: T1, index: number, array: T1[]) => boolean, arr: T1[]): boolean => arr.some(p);
     export const None = <T1>(p: (value: T1, index: number, array: T1[]) => boolean, arr: T1[]): boolean => !arr.some(p);
 
     export const ContainedIn = <T>(arr: T[], v: T): boolean => arr.includes(v);
-    export const Contains = Swap(ContainedIn) as any;
-    export const IsSupersetOf = <T>(sub: T[], sup: T[]): boolean => {
-        const supSet = new Set(sup);
-        return sub.every(subel => supSet.has(subel));
-    };
-    export const IsSubsetOf = (sup: any[], sub: any[]) => {
-        const supSet = new Set(sup);
-        return sub.every(subel => supSet.has(subel));
-    };
-
-    export const EqualsArray = (arr: any[], arrUnderTest: any[]): boolean => {
-        if (arr.length !== arrUnderTest.length) {
-            return false
-        } else {
-            const set = new Set(arr);
-            return arrUnderTest.every(v => set.has(v));
-        }
-    };
-    export const IsUnique = (arr: any[]) => {
-        const arrSet = new Set(arr);
-        return arrSet.size === arr.length;
-    }
+    export const Contains = <T>(value: T, arr: T[]): boolean => arr.includes(value);
 }

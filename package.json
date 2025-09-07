@@ -50,6 +50,11 @@
       "types": "./lib/form/index.d.ts",
       "import": "./lib/form/index.js",
       "require": "./lib/form/index.js"
+    },
+    "./set": {
+      "types": "./lib/set/index.d.ts",
+      "import": "./lib/set/index.js",
+      "require": "./lib/set/index.js"
     }
   },
   "files": [

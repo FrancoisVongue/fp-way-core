@@ -85,17 +85,18 @@ describe('obj', () => {
   });
 
   describe('WithDefault', () => {
-    let defCat: Partial<Cat>;
+    let defCat: Cat;
     let partialCat: Partial<Cat>;
 
     beforeEach(() => {
       defCat = {
+        age: 1,
         amountOfLegs: 4,
         child: {
           age: 1,
           amountOfLegs: 4
         }
-      }
+      } as Cat;
       partialCat = {
         age: 5,
         name: 'Johny',
@@ -103,7 +104,7 @@ describe('obj', () => {
           amountOfLegs: 3,
           name: 'Johny Jr.',
         }
-      }
+      };
     });
 
     it('Should provide default properties for objects', () => {
@@ -125,6 +126,13 @@ describe('obj', () => {
 
   describe('Impose', () => {
     it('Should be the inverse of WithDefault', () => {
+      type Cat = {
+        age?: number;
+        name?: string;
+        amountOfLegs: number;
+        child?: CatChild;
+      }
+
       const defCat = {
         amountOfLegs: 4,
         child: {
@@ -142,8 +150,8 @@ describe('obj', () => {
         }
       };
 
-      const cat1 = obj.WithDefault(defCat, partialCat);
-      const cat2 = obj.Impose(partialCat, defCat);
+      const cat1 = obj.WithDefault<Cat>(defCat, partialCat);
+      const cat2 = obj.Impose<Cat>(partialCat, defCat);
 
       expect(cat1).toEqual(cat2);
     });
@@ -315,19 +323,14 @@ describe('obj', () => {
 
     // New test: Null and undefined
     it('should handle null and undefined', () => {
-      // @ts-expect-error
       expect(obj.DeepCopy(null)).toBe(null);
-      // @ts-expect-error
       expect(obj.DeepCopy(undefined)).toBe(undefined);
     });
 
     // New test: Primitive values
     it('should handle primitive values', () => {
-      // @ts-expect-error
       expect(obj.DeepCopy(42)).toBe(42);
-      // @ts-expect-error
       expect(obj.DeepCopy('hello')).toBe('hello');
-      // @ts-expect-error
       expect(obj.DeepCopy(true)).toBe(true);
     });
 
@@ -346,56 +349,6 @@ describe('obj', () => {
   });
 
 
-  describe('Flatten', () => {
-    it('should flatten a simple object', () => {
-      const person = {
-        age: 14,
-        name: "gregor",
-      };
-      const result = obj.Flatten(person);
-
-      expect(result.age).toBe(person.age);
-      expect(result.name).toBe(person.name);
-    });
-
-    it('should flatten a complex object', () => {
-      const person = {
-        age: 14,
-        name: "gregor",
-        child: {
-          age: 14,
-          name: "gregor",
-          friends: ["marta", "chloe", "francois"]
-        }
-      };
-      const result = obj.Flatten(person);
-
-      expect(result['child.age']).toBe(person.child.age);
-      expect(result['child.friends.1']).toBe("chloe");
-    });
-
-    it('should handle nested objects properly', () => {
-      const data = {
-        user: {
-          profile: {
-            details: {
-              firstName: "John",
-              lastName: "Doe"
-            }
-          },
-          settings: {
-            theme: "dark"
-          }
-        }
-      };
-
-      const flattened = obj.Flatten(data);
-
-      expect(flattened['user.profile.details.firstName']).toBe("John");
-      expect(flattened['user.profile.details.lastName']).toBe("Doe");
-      expect(flattened['user.settings.theme']).toBe("dark");
-    });
-  });
 
   describe('Get', () => {
     it('should safely focus deep into nested objects', () => {
@@ -423,11 +376,8 @@ describe('obj', () => {
     it('should return undefined for non-existent paths', () => {
       const person = { age: 14, name: "gregor" };
 
-      // @ts-expect-error
       expect(obj.Get(["child"], person)).toBeUndefined();
-      // @ts-expect-error
       expect(obj.Get(["age", "value"], person)).toBeUndefined();
-      // @ts-expect-error
       expect(obj.Get(["nonexistent", "path"], person)).toBeUndefined();
     });
 
@@ -449,11 +399,8 @@ describe('obj', () => {
       const person = { age: 14, name: "gregor" };
       const defaultName = "Unknown";
 
-      // @ts-expect-error
       expect(obj.GetOr(defaultName, ["child", "name"], person)).toBe(defaultName);
-      // @ts-expect-error
       expect(obj.GetOr(0, ["child", "age"], person)).toBe(0);
-      // @ts-expect-error
       expect(obj.GetOr({}, ["profile"], person)).toEqual({});
     });
 
@@ -487,11 +434,8 @@ describe('obj', () => {
       expect(obj.HasPath(["profile", "settings", "theme"], person)).toBe(true);
       expect(obj.HasPath(["friends", "0"], person)).toBe(true);
 
-      // @ts-expect-error
       expect(obj.HasPath(["nonexistent"], person)).toBe(false);
-      // @ts-expect-error
       expect(obj.HasPath(["profile", "nonexistent"], person)).toBe(false);
-      // @ts-expect-error
       expect(obj.HasPath(["profile", "settings", "nonexistent"], person)).toBe(false);
     });
 
@@ -642,7 +586,6 @@ describe('obj', () => {
       const result = obj.Get(["father", "daughter", "grandSon", "grandGrandSon", "gggSon", "name"], grandPa);
       const result2 = obj.Get(["father", "daughter", "grandSon", "grandGrandSon", "gggSon"], grandPa);
 
-      // @ts-expect-error
       const nilResult = obj.Get(["father", "daughter", "grandSon", "unknown"], grandPa);
       const father = obj.Get(["father"], grandPa);
 

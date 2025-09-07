@@ -41,45 +41,6 @@ describe('arr', () => {
             expect(numArr.every(v => IsOfType('number', v))).toBe(true);
         })
     });
-    describe('Subtract', function () {
-        it('Should subtract one set from another', () => {
-            const Even = num.IsQuotientOf(2);
-            const Odd = Not(num.IsQuotientOf(2));
-
-            const arr1to100 = arr.FromRange(1, 100, 1);
-            const even = arr.Select(Even, arr1to100);
-            const odd = arr.Subtract(even, arr1to100);
-
-            expect(odd.every(Odd)).toBe(true);
-            expect(odd.length).toBeGreaterThan(48);
-            expect(odd.length).toBeLessThan(52);
-        })
-    });
-    describe('IsSubsetOf', function () {
-        it('Should check if arr is subset of another', () => {
-            const Even = num.IsQuotientOf(2);
-            const arr1to100 = arr.FromRange(1, 100, 1);
-            const even = arr.Select(Even, arr1to100);
-
-            const result = arr.IsSubsetOf(arr1to100, even)
-            const falseResult = arr.IsSubsetOf(arr1to100, [...even, 101]) // 101 is not in range
-
-            expect(result).toBe(true);
-            expect(falseResult).toBe(false);
-        })
-    });
-    describe('IsUnique', function () {
-        it('Should check if arr is unique', () => {
-            const uniqueArr = [1, 2, 3, 4, 5];
-            const notUniqueArr = [1, 2, 3, 4, 5, 1];
-
-            const result = arr.IsUnique(uniqueArr);
-            const falseRes = arr.IsUnique(notUniqueArr);
-
-            expect(result).toBe(true);
-            expect(falseRes).toBe(false);
-        })
-    });
     describe('Tail', () => {
         it('should take all elements of an array but the first one', () => {
             const result = arr.Tail([1, 2, 3]);
@@ -156,16 +117,6 @@ describe('arr', () => {
             const result = arr.TakeNLast(3, array);
 
             expect(result).toEqual([]);
-        })
-    });
-    describe('Intersection', () => {
-        it('should return intersection of two arrays', () => {
-            const array = [1, 2, 3];
-            const array2 = [2, 3, 4, 5]
-
-            const result = arr.Intersection(array, array2);
-
-            expect(result).toEqual([2, 3]);
         })
     });
 

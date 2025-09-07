@@ -8,6 +8,7 @@ export * from './num'
 export * from './str'
 export * from './obj'
 export * from './arr'
+export * from './set'
 export * from './union'
 
 // Re-export namespaces for convenience
@@ -16,4 +17,5 @@ export { num } from './num'
 export { str } from './str'
 export { obj } from './obj'
 export { arr } from './arr'
+export { set } from './set'
 export { Union } from './union'
